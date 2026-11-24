@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kinship Lab · Guess the Animal</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#193b34;color:#f5f2df;font:16px/1.5 system-ui,sans-serif}main{width:min(620px,100%);margin:auto;padding:clamp(18px,4vw,35px)}header{display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid #758b7d;padding:0 0 14px}header span{letter-spacing:.14em;text-transform:uppercase;font-size:.78rem;font-weight:700;color:#d7e3b0}.card{background:#fbf5e2;color:#193b34;border-radius:24px;padding:clamp(20px,4vw,34px);margin:20px 0 15px}.tag{font-weight:700;font-size:.83rem;color:#386155;margin:0}h1{font:700 clamp(2rem,7vw,3.2rem)/1.02 Georgia,serif;margin:10px 0 14px}p{margin:9px 0}.choices{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:22px 0 12px}button{font:inherit;cursor:pointer}.choices button{background:transparent;border:2px solid #327361;text-align:left;padding:12px 14px;border-radius:12px;font-weight:650;color:#193b34}.choices button:hover:not(:disabled),.choices button:focus-visible{background:#dce6ce}.choices button.correct{background:#c4e2bf}.choices button[disabled]{cursor:default;color:#193b34}.next{border:0;border-radius:20px;background:#204e42;color:white;font-weight:600;padding:8px 18px;margin-top:10px}.feedback{border-left:4px solid #cb8e39;padding-left:11px;margin:12px 0}footer{font-size:.87rem;color:#cff0d5}footer a{color:#ecf6ac}button:focus-visible,a:focus-visible{outline:3px solid #da9c40;outline-offset:3px}.mark{width:43px;height:37px}header strong{font-family:Georgia,serif;font-size:1.12rem}header .brand{display:flex;align-items:center;gap:10px}::selection{background:#f1cb8c;color:#193b34}@media(max-width:385px){.choices{grid-template-columns:1fr}header .brand{gap:6px}}
+</style>
+<main>
+<header><div class="brand"><canvas class="mark" width="86" height="74" aria-hidden="true"></canvas><strong>Kinship Lab</strong></div><span>Guess the Animal</span></header>
+<section class="card" aria-labelledby="question"><p class="tag" id="round"></p><h1 id="question"></h1><p id="prompt"></p><div class="choices" id="choices"></div><div id="answer" aria-live="polite"></div><button class="next" id="next" hidden></button></section>
+<footer>Prefer a longer challenge? <a href="https://guesstheanimalgame.com/" target="_blank" rel="noopener">Play the daily animal mystery</a>.</footer>
+</main>
+<script>
+'use strict';
+const rounds=[
+ {animal:'gray wolf',rank:'genus',choices:['Red fox','Coyote'],correct:1,why:'The gray wolf (Canis lupus) and coyote (Canis latrans) share the genus Canis. The red fox belongs to Vulpes. All three are in the dog family, Canidae.'},
+ {animal:'bald eagle',rank:'family',choices:['Red-tailed hawk','Peregrine falcon'],correct:0,why:'The bald eagle and red-tailed hawk both belong to Accipitridae. The peregrine is in Falconidae. A hooked bill helps all three hunt, but it does not settle the family question.'},
+ {animal:'giant panda',rank:'family',choices:['Red panda','Polar bear'],correct:1,why:'The giant panda and polar bear are both bears, in Ursidae. The red panda has its own family, Ailuridae. Common names can hide this difference.'},
+ {animal:'sea otter',rank:'family',choices:['River otter','Harbor seal'],correct:0,why:'The sea otter and North American river otter belong to Mustelidae. The harbor seal belongs to Phocidae. Sharing a coastline says less about kinship than sharing a family.'},
+ {animal:'jaguar',rank:'genus',choices:['Cheetah','Siberian tiger'],correct:1,why:'The jaguar and tiger belong to Panthera. The cheetah belongs to Acinonyx. Spots can make the jaguar and cheetah look alike even though their genera differ.'},
+ {animal:'emperor penguin',rank:'genus',choices:['King penguin','African penguin'],correct:0,why:'Emperor and king penguins belong to Aptenodytes. The African penguin belongs to Spheniscus. All three share the penguin family, Spheniscidae.'}
+];
+const $=id=>document.getElementById(id);
+let position=0, score=0, answered=false;
+const canvas=document.querySelector('canvas'), pen=canvas.getContext('2d');
+pen.strokeStyle='#d5dfa7';pen.lineWidth=4;pen.beginPath();pen.moveTo(8,66);pen.lineTo(8,37);pen.lineTo(39,37);pen.lineTo(39,15);pen.lineTo(74,15);pen.moveTo(39,37);pen.lineTo(74,37);pen.moveTo(8,59);pen.lineTo(74,59);pen.stroke();
+for(const y of [15,37,59]){pen.fillStyle=y===15?'#f0ad55':'#d5dfa7';pen.beginPath();pen.arc(74,y,6,0,Math.PI*2);pen.fill()}
+function draw(){
+ const r=rounds[position];
+ answered=false;$('round').textContent='ROUND '+(position+1)+' OF '+rounds.length;
+ $('question').textContent='Meet the '+r.animal+'.';
+ $('prompt').textContent='Which other animal belongs to the same '+r.rank+'?';
+ $('choices').replaceChildren();$('answer').replaceChildren();$('next').hidden=true;
+ r.choices.forEach((name,index)=>{const b=document.createElement('button');b.textContent=name;b.onclick=()=>choose(index);$('choices').append(b)});
+}
+function choose(index){
+ if(answered)return;answered=true;const r=rounds[position];
+ if(index===r.correct)score++;
+ Array.from($('choices').children).forEach((b,i)=>{b.disabled=true;if(i===r.correct)b.classList.add('correct')});
+ const feedback=document.createElement('p');feedback.className='feedback';
+ const lead=document.createElement('strong');lead.textContent=index===r.correct?'Correct. ':'The match is '+r.choices[r.correct]+'. ';
+ feedback.append(lead,document.createTextNode(r.why));$('answer').append(feedback);
+ $('next').textContent=position===rounds.length-1?'See result':'Next pair';$('next').hidden=false;$('next').focus();
+}
+$('next').onclick=()=>{
+ if(position===rounds.length){position=0;score=0;draw();$('choices').firstElementChild.focus();return}
+ position++;
+ if(position<rounds.length){draw();$('choices').firstElementChild.focus();return}
+ $('round').textContent='FIELD NOTES';$('question').textContent=score+' of '+rounds.length+' matched.';
+ $('prompt').textContent='Family is a broader rank than genus. Two species in the same genus also share a family; species in the same family can have different genera.';
+ $('choices').replaceChildren();$('answer').replaceChildren();$('next').textContent='Play again';$('next').focus();
+};
+draw();
+</script>
+</html>
